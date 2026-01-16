@@ -11,7 +11,9 @@ const out = document.getElementById("output");
 const groupSelect = document.getElementById("groupSelect");
 const assetInput = document.getElementById("assetInput");
 const assetList = document.getElementById("assetList");
+const imprFilter = document.getElementById("imprFilter");
 
+imprFilter.addEventListener("change", applyFilters);
 /* ================= FILE UPLOAD ================= */
 
 fileInput.addEventListener("change", async e => {
@@ -83,7 +85,8 @@ function buildPortal(rows) {
       "Cost/In-app action": getCol(r, "Cost/In-app"),
       "Installs": getCol(r, "Installs"),
       "Conv.value/cost": getCol(r, "Conv.value"),
-      "Cost": getCol(r, "Cost")
+      "Cost": getExactCol(r, "Cost")
+
     };
 
   }).filter(r => r.assetName && r.day);
@@ -153,22 +156,49 @@ function applyFilters() {
 
   const g = groupSelect.value;
   const a = assetInput.value.toLowerCase();
+  const imprChecked = imprFilter.checked;
 
   let filtered = normalizedData;
 
+  // Ad group filter
   if (g)
     filtered = filtered.filter(x =>
       x.adgroup === g
     );
 
+  // Asset search filter
   if (a)
     filtered = filtered.filter(x =>
       x.assetName.toLowerCase().includes(a)
     );
 
+  // Impression filter
+  if (imprChecked) {
+
+    filtered = filtered.filter(r => {
+
+      const rowsForAsset =
+        filtered.filter(x => x.assetName === r.assetName);
+
+      const days =
+        [...new Set(rowsForAsset.map(x => x.day))].sort();
+
+      const lastDay = days[days.length - 1];
+
+      const lastRec =
+        rowsForAsset.find(x => x.day === lastDay);
+
+      const impr =
+        parseInt(String(lastRec["Impr."]).replace(/,/g,""));
+
+      return impr >= 1000;
+    });
+  }
+
   renderTables(filtered);
   updateAssetListByGroup(filtered);
 }
+
 
 /* ================= RENDER TABLE ================= */
 
@@ -238,14 +268,71 @@ function renderTables(data) {
       tdn.textContent = m;
       trm.appendChild(tdn);
 
-      days.forEach(d => {
-        const rec =
-          rowsForAsset.find(x => x.day === d);
+days.forEach((d, idx) => {
 
-        const td = document.createElement("td");
-        td.textContent = rec ? rec[m] : "";
-        trm.appendChild(td);
-      });
+  const rec = rowsForAsset.find(x => x.day === d);
+  const td = document.createElement("td");
+
+  if (!rec) {
+    td.textContent = "";
+    trm.appendChild(td);
+    return;
+  }
+
+  let val = rec[m];
+  td.textContent = val;
+
+  // ========= COLOR LOGIC =========
+  if (idx > 0) {
+
+    const prevDay = days[idx - 1];
+    const prevRec =
+      rowsForAsset.find(x => x.day === prevDay);
+
+    if (prevRec) {
+
+      const cur =
+        parseFloat(String(rec[m]).replace(/[₹,%]/g,""));
+      const prev =
+        parseFloat(String(prevRec[m]).replace(/[₹,%]/g,""));
+
+      if (!isNaN(cur) && !isNaN(prev)) {
+
+        // ===== CTR =====
+        if (m === "CTR") {
+
+          if (cur > prev) {
+            td.style.color = "green";
+            td.style.fontWeight = "600";
+          }
+
+          if (cur < prev) {
+            td.style.color = "red";
+            td.style.fontWeight = "600";
+          }
+        }
+
+        // ===== CPC & CPI =====
+        if (m === "Avg.CPC" || m === "Cost/Install") {
+
+          if (cur > prev) {          // cost increased
+            td.style.color = "red";
+            td.style.fontWeight = "600";
+          }
+
+          if (cur <= prev) {         // cost reduced or same
+            td.style.color = "green";
+            td.style.fontWeight = "600";
+          }
+        }
+      }
+    }
+  }
+
+  trm.appendChild(td);
+});
+
+
 
       tbody.appendChild(trm);
     });
@@ -284,3 +371,14 @@ function updateAssetListByGroup(data){
     assetList.appendChild(opt);
   });
 }
+
+function getExactCol(row, exactName) {
+
+  for (let k in row) {
+    if (k.trim().toLowerCase() === exactName.trim().toLowerCase()) {
+      return row[k];
+    }
+  }
+  return "";
+}
+

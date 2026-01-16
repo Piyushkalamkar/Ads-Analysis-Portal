@@ -444,3 +444,55 @@ tbody tr.metric-row:nth-child(even) {
   color: var(--muted);
   font-style: italic;
 }
+
+/* Impression Filter Styling */
+
+.impr-filter{
+  display:flex;
+  justify-content:center;
+  margin:15px 0;
+}
+
+.impr-filter label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:#f8fafc;
+  padding:8px 16px;
+  border-radius:20px;
+  border:1px solid var(--border);
+  font-size:13px;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.impr-filter label:hover{
+  background:#eef2ff;
+  border-color:var(--primary);
+}
+
+.impr-filter input{
+  accent-color: var(--primary);
+  cursor:pointer;
+}
+
+/* Alternate row colors (horizontal) */
+
+.output tbody tr:nth-child(odd){
+  background:#ffffff;
+}
+
+.output tbody tr:nth-child(even){
+  background:#f6f9fc;   /* light color */
+}
+
+/* Row hover highlight */
+
+.output tbody tr{
+  transition: background .2s ease;
+}
+
+.output tbody tr:hover{
+  background:#e0ecff !important;  /* soft highlight */
+  cursor:pointer;
+}
