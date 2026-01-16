@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Campaign Portal</title>
+
+<!-- CSS -->
+<link rel="stylesheet" href="styles.css">
+
+<!-- Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="container">
+    <h1>Campaign Portal – Upload & Analyze</h1>
+    <p class="sub">
+      Upload CSV, filter by Ad Group, search App Assets & analyze performance.
+    </p>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="container">
+
+  <div class="card">
+
+    <!-- UPLOADER -->
+    <div class="uploader">
+      <label for="fileInput" class="custom-file-upload">
+        📁 Choose File
+      </label>
+      <input id="fileInput" type="file" accept=".csv">
+      <div id="fileName" class="file-name">No file selected</div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="graph-toolbar">
+
+      <!-- Ad Group Dropdown -->
+      <select id="groupSelect" class="graph-select">
+        <option value="">All Ad Groups</option>
+      </select>
+
+      <!-- App Asset Smart Search -->
+      <input 
+        id="assetInput"
+        list="assetList"
+        class="graph-select"
+        placeholder="Search App Asset...">
+
+      <datalist id="assetList"></datalist>
+
+      <button id="clearFilters" class="show-graph-btn">
+  Clear Filters
+</button>
+
+    </div>
+
+    <!-- CAMPAIGN HEADING -->
+    <h3 id="campaignHeading"
+    style="text-align:center;margin:15px 0;font-weight:600">
+    </h3>
+
+    <!-- STATUS -->
+    <div class="toolbar">
+      <div id="status" class="pill">
+        Please upload your file
+      </div>
+    </div>
+
+    <!-- OUTPUT -->
+    <div id="output" class="output"></div>
+
+  </div>
+
+</main>
+
+<!-- GRAPH MODAL -->
+<div id="graphModal" class="graph-modal">
+  <div class="graph-content">
+    <span id="closeGraph" class="close-btn">&times;</span>
+    <canvas id="chartCanvas"></canvas>
+  </div>
+</div>
+
+<!-- MAIN SCRIPT -->
+<script src="script.js"></script>
+
+</body>
+</html>
