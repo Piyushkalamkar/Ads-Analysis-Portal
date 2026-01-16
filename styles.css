@@ -148,11 +148,8 @@ input[type="file"] {
   align-items: center;
   gap: 28px;
   width: 100%;
-  max-height: 600px;
-  overflow-y: auto;
-  padding-right: 10px;
-  box-sizing: border-box;
 }
+
 
 /* ---------- TABLE STYLING ---------- */
 .output table {
