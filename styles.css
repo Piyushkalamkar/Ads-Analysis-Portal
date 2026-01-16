@@ -496,3 +496,10 @@ tbody tr.metric-row:nth-child(even) {
   background:#e0ecff !important;  /* soft highlight */
   cursor:pointer;
 }
+/* Metric name styling (first column) */
+
+.output tbody td:first-child{
+  font-weight:700;           /* bold */
+  color:#000000;             /* dark blue */
+        /* soft highlight */
+}
