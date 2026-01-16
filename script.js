@@ -12,6 +12,8 @@ const groupSelect = document.getElementById("groupSelect");
 const assetInput = document.getElementById("assetInput");
 const assetList = document.getElementById("assetList");
 const imprFilter = document.getElementById("imprFilter");
+const campaignSelect = document.getElementById("campaignSelect");
+
 
 imprFilter.addEventListener("change", applyFilters);
 /* ================= FILE UPLOAD ================= */
@@ -58,6 +60,63 @@ function getCol(row, name) {
   return "";
 }
 
+function filterByLastDayImpr(data){
+
+  const assetMap = new Map();
+
+  // group by asset
+  data.forEach(r=>{
+    if(!assetMap.has(r.assetName))
+      assetMap.set(r.assetName,[]);
+    assetMap.get(r.assetName).push(r);
+  });
+
+  let finalData=[];
+
+  assetMap.forEach(rowsForAsset=>{
+
+    const days =
+      [...new Set(rowsForAsset.map(r=>r.day))].sort();
+
+    const lastDay = days[days.length-1];
+
+    const lastRec =
+      rowsForAsset.find(x=>x.day===lastDay);
+
+    if(!lastRec) return;
+
+    const impr = getLastDayImpr(rowsForAsset);
+
+
+    // keep only >=1000
+    if(impr>=1000){
+      finalData.push(...rowsForAsset);
+    }
+
+  });
+
+  return finalData;
+}
+
+function getLastDayImpr(rows){
+
+  const days =
+    [...new Set(rows.map(r=>r.day))].sort();
+
+  const lastDay = days[days.length-1];
+
+  const lastRec =
+    rows.find(x=>x.day===lastDay);
+
+  if(!lastRec) return 0;
+
+  return parseInt(
+    String(lastRec["Impr."]).replace(/,/g,"")
+  ) || 0;
+}
+
+
+
 /* ================= BUILD PORTAL ================= */
 
 function buildPortal(rows) {
@@ -91,6 +150,23 @@ function buildPortal(rows) {
 
   }).filter(r => r.assetName && r.day);
 
+  /* Populate Campaign dropdown */
+const campaigns = [...new Set(normalizedData.map(d => d.campaign))];
+populateCampaigns(campaigns);
+
+function populateCampaigns(list){
+  campaignSelect.innerHTML =
+    '<option value="">All Campaigns</option>';
+
+  list.forEach(c=>{
+    const o=document.createElement("option");
+    o.value=c;
+    o.textContent=c;
+    campaignSelect.appendChild(o);
+  });
+}
+
+
   if (!normalizedData.length) {
     statusEl.textContent = "No valid data found";
     return;
@@ -99,8 +175,9 @@ function buildPortal(rows) {
   statusEl.textContent = "Data loaded";
 
   /* Campaign heading */
-  document.getElementById("campaignHeading").textContent =
-    normalizedData[0].campaign || "";
+ document.getElementById("campaignHeading").textContent =
+  "All Campaigns";
+
 
   /* Populate Ad Group dropdown */
   const groups = [...new Set(normalizedData.map(d => d.adgroup))];
@@ -128,6 +205,15 @@ function populateGroups(groups) {
   });
 }
 
+function updateGroupsByCampaign(data){
+
+  const groups =
+    [...new Set(data.map(d => d.adgroup))];
+
+  populateGroups(groups);
+}
+
+
 function populateAssetList(list) {
   assetList.innerHTML = "";
   list.forEach(a => {
@@ -148,98 +234,119 @@ groupSelect.addEventListener("change", () => {
   applyFilters();
 });
 
+campaignSelect.addEventListener("change", () => {
+
+  // Reset lower filters
+  groupSelect.value = "";
+  assetInput.value = "";
+
+  // Update heading dynamically
+  const selectedCampaign = campaignSelect.value;
+
+  document.getElementById("campaignHeading").textContent =
+    selectedCampaign || "All Campaigns";
+
+  applyFilters();
+});
+
+
 assetInput.addEventListener("input", applyFilters);
 
 /* ================= APPLY FILTER ================= */
 
 function applyFilters() {
 
+  const c = campaignSelect.value;
   const g = groupSelect.value;
   const a = assetInput.value.toLowerCase();
   const imprChecked = imprFilter.checked;
 
   let filtered = normalizedData;
 
-  // Ad group filter
+  /* Campaign */
+  if (c)
+    filtered = filtered.filter(x =>
+      x.campaign === c
+    );
+
+  /* Update groups by campaign */
+  updateGroupsByCampaign(filtered);
+
+  /* Group */
   if (g)
     filtered = filtered.filter(x =>
       x.adgroup === g
     );
 
-  // Asset search filter
+  /* Asset */
   if (a)
     filtered = filtered.filter(x =>
       x.assetName.toLowerCase().includes(a)
     );
 
-  // Impression filter
-  if (imprChecked) {
-
-    filtered = filtered.filter(r => {
-
-      const rowsForAsset =
-        filtered.filter(x => x.assetName === r.assetName);
-
-      const days =
-        [...new Set(rowsForAsset.map(x => x.day))].sort();
-
-      const lastDay = days[days.length - 1];
-
-      const lastRec =
-        rowsForAsset.find(x => x.day === lastDay);
-
-      const impr =
-        parseInt(String(lastRec["Impr."]).replace(/,/g,""));
-
-      return impr >= 1000;
-    });
+  /* Impression filter */
+  if (imprChecked){
+    filtered = filterByLastDayImpr(filtered);
   }
 
-  renderTables(filtered);
   updateAssetListByGroup(filtered);
+  renderTables(filtered);
 }
+
+
+
 
 
 /* ================= RENDER TABLE ================= */
 
 function renderTables(data) {
 
+  /* Group by App Asset */
   const assetMap = new Map();
 
-  data.forEach(r => {
-    if (!assetMap.has(r.assetName))
-      assetMap.set(r.assetName, []);
+  data.forEach(r=>{
+    if(!assetMap.has(r.assetName))
+      assetMap.set(r.assetName,[]);
     assetMap.get(r.assetName).push(r);
   });
 
-  out.innerHTML = "";
+  /* SORT BY LAST DATE IMPRESSION (GLOBAL) */
+  const sortedAssets = [...assetMap.entries()]
+  .sort((a,b)=>{
 
-  assetMap.forEach((rowsForAsset, asset) => {
+    const imprA = getLastDayImpr(a[1]);
+    const imprB = getLastDayImpr(b[1]);
 
-    const days = [
-      ...new Set(rowsForAsset.map(r => r.day))
-    ].sort();
+    return imprB - imprA;   // DESC
+  });
 
-    const table = document.createElement("table");
+  out.innerHTML="";
+
+  sortedAssets.forEach(([asset,rowsForAsset])=>{
+
+    const days =
+      [...new Set(rowsForAsset.map(r=>r.day))].sort();
+
+    const table=document.createElement("table");
 
     /* HEADER */
-    const thead = document.createElement("thead");
-    const tr = document.createElement("tr");
+    const thead=document.createElement("thead");
+    const tr=document.createElement("tr");
 
-    const th = document.createElement("th");
-    const link = rowsForAsset[0].assetLink;
+    const th=document.createElement("th");
+    const link=rowsForAsset[0].assetLink;
 
-    th.innerHTML = `
+    th.innerHTML=`
       <a href="${link}" target="_blank"
-      style="color:#2563eb;font-weight:600;text-decoration:none">
+      style="color:#2563eb;font-weight:600">
       ${asset}
       </a>
     `;
     tr.appendChild(th);
 
-    days.forEach(d => {
-      const th2 = document.createElement("th");
-      th2.textContent = d;
+    days.forEach(d=>{
+      const th2=document.createElement("th");
+      th2.textContent=d;
       tr.appendChild(th2);
     });
 
@@ -247,7 +354,7 @@ function renderTables(data) {
     table.appendChild(thead);
 
     /* BODY */
-    const metrics = [
+    const metrics=[
       "Impr.",
       "CTR",
       "Avg.CPC",
@@ -259,80 +366,65 @@ function renderTables(data) {
       "Cost"
     ];
 
-    const tbody = document.createElement("tbody");
+    const tbody=document.createElement("tbody");
 
-    metrics.forEach(m => {
+    metrics.forEach(m=>{
 
-      const trm = document.createElement("tr");
-      const tdn = document.createElement("td");
-      tdn.textContent = m;
+      const trm=document.createElement("tr");
+      const tdn=document.createElement("td");
+      tdn.textContent=m;
       trm.appendChild(tdn);
 
-days.forEach((d, idx) => {
+      days.forEach((d,idx)=>{
 
-  const rec = rowsForAsset.find(x => x.day === d);
-  const td = document.createElement("td");
+        const rec =
+          rowsForAsset.find(x=>x.day===d);
 
-  if (!rec) {
-    td.textContent = "";
-    trm.appendChild(td);
-    return;
-  }
+        const td=document.createElement("td");
 
-  let val = rec[m];
-  td.textContent = val;
+        if(!rec){
+          td.textContent="";
+          trm.appendChild(td);
+          return;
+        }
 
-  // ========= COLOR LOGIC =========
-  if (idx > 0) {
+        td.textContent=rec[m];
 
-    const prevDay = days[idx - 1];
-    const prevRec =
-      rowsForAsset.find(x => x.day === prevDay);
+        /* COLOR LOGIC */
+        if(idx>0){
 
-    if (prevRec) {
+          const prevDay=days[idx-1];
+          const prevRec=
+            rowsForAsset.find(x=>x.day===prevDay);
 
-      const cur =
-        parseFloat(String(rec[m]).replace(/[₹,%]/g,""));
-      const prev =
-        parseFloat(String(prevRec[m]).replace(/[₹,%]/g,""));
+          if(prevRec){
 
-      if (!isNaN(cur) && !isNaN(prev)) {
+            const cur=
+              parseFloat(String(rec[m]).replace(/[₹,%]/g,""));
+            const prev=
+              parseFloat(String(prevRec[m]).replace(/[₹,%]/g,""));
 
-        // ===== CTR =====
-        if (m === "CTR") {
+            if(!isNaN(cur)&&!isNaN(prev)){
 
-          if (cur > prev) {
-            td.style.color = "green";
-            td.style.fontWeight = "600";
-          }
+              // CTR
+              if(m==="CTR"){
+                if(cur>prev) td.style.color="green";
+                if(cur<prev) td.style.color="red";
+              }
 
-          if (cur < prev) {
-            td.style.color = "red";
-            td.style.fontWeight = "600";
+              // CPC & CPI
+              if(m==="Avg.CPC"||m==="Cost/Install"){
+                if(cur>prev) td.style.color="red";
+                if(cur<=prev) td.style.color="green";
+              }
+
+              td.style.fontWeight="600";
+            }
           }
         }
 
-        // ===== CPC & CPI =====
-        if (m === "Avg.CPC" || m === "Cost/Install") {
-
-          if (cur > prev) {          // cost increased
-            td.style.color = "red";
-            td.style.fontWeight = "600";
-          }
-
-          if (cur <= prev) {         // cost reduced or same
-            td.style.color = "green";
-            td.style.fontWeight = "600";
-          }
-        }
-      }
-    }
-  }
-
-  trm.appendChild(td);
-});
-
-
+        trm.appendChild(td);
+      });
 
       tbody.appendChild(trm);
     });
@@ -341,6 +433,7 @@ days.forEach((d, idx) => {
     out.appendChild(table);
   });
 }
+
 
 const clearBtn = document.getElementById("clearFilters");
 
