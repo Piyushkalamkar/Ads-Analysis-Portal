@@ -136,7 +136,15 @@ function populateAssetList(list) {
 
 /* ================= FILTER EVENTS ================= */
 
-groupSelect.addEventListener("change", applyFilters);
+groupSelect.addEventListener("change", () => {
+
+  // Reset asset search when group changes
+  assetInput.value = "";
+
+  // Apply filter for new group
+  applyFilters();
+});
+
 assetInput.addEventListener("input", applyFilters);
 
 /* ================= APPLY FILTER ================= */
@@ -159,6 +167,7 @@ function applyFilters() {
     );
 
   renderTables(filtered);
+  updateAssetListByGroup(filtered);
 }
 
 /* ================= RENDER TABLE ================= */
@@ -260,3 +269,18 @@ clearBtn.addEventListener("click", () => {
   renderTables(normalizedData);
 
 });
+
+function updateAssetListByGroup(data){
+
+  const assets = [
+    ...new Set(data.map(d => d.assetName))
+  ];
+
+  assetList.innerHTML = "";
+
+  assets.forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a;
+    assetList.appendChild(opt);
+  });
+}
