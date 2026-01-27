@@ -424,9 +424,7 @@ function showLineGraph(assetName, metric, rowsForAsset) {
 
   const values = days.map((d) => {
     const rec = rowsForAsset.find((x) => x.day === d);
-    return rec
-      ? parseFloat(String(rec[metric]).replace(/[₹,%]/g, ""))
-      : null;
+    return rec ? parseFloat(String(rec[metric]).replace(/[₹,%]/g, "")) : null;
   });
 
   // SHOW MODAL
@@ -453,18 +451,62 @@ function showLineGraph(assetName, metric, rowsForAsset) {
           borderWidth: 3,
           tension: 0.3,
           fill: false,
+
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          pointBackgroundColor: "#2563eb",
+          pointHoverBackgroundColor: "#1e40af",
+          pointHitRadius: 12,
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+
+      interaction: {
+        mode: "nearest",
+        intersect: false,
+      },
+
       plugins: {
         legend: {
           display: true,
-          position: "top",
+        },
+
+        tooltip: {
+          enabled: true,
+          backgroundColor: "#0f172a",
+          titleColor: "#ffffff",
+          bodyColor: "#ffffff",
+          padding: 10,
+          cornerRadius: 6,
+          displayColors: false,
+
+          callbacks: {
+            title: function (tooltipItems) {
+              return "Day: " + tooltipItems[0].label;
+            },
+
+            label: function (context) {
+              const metric = context.dataset.label.split(" – ")[1];
+              let value = context.parsed.y;
+
+              // Format values nicely
+              if (metric === "CTR") {
+                return `CTR: ${value.toFixed(2)} %`;
+              }
+
+              if (metric.includes("Cost") || metric.includes("CPC")) {
+                return `${metric}: ₹${value.toFixed(2)}`;
+              }
+
+              return `${metric}: ${value}`;
+            },
+          },
         },
       },
+
       scales: {
         y: {
           beginAtZero: false,
@@ -486,4 +528,3 @@ window.addEventListener("click", (e) => {
     modal.style.display = "none";
   }
 });
-
