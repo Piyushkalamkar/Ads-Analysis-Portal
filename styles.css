@@ -500,3 +500,21 @@ tbody tr.metric-row:nth-child(even) {
   color:#000000;             /* dark blue */
         /* soft highlight */
 }
+
+/* ---------- SINGLE CELL HOVER (DATA POINT) ---------- */
+
+
+
+.output td:hover {
+  background-color: #e9b509;   /* dark slate */
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+/* Do NOT apply dark hover to metric name column */
+
+.output tbody td:first-child:hover {
+  background-color: inherit;
+  color: #000 !important;
+  cursor: default;
+}
